@@ -8,6 +8,7 @@
     <artifactId>hadoop-parent</artifactId>
     <version>1.0-SNAPSHOT</version>
     <modules>
+        <module>common</module>
         <module>wordcount</module>
     </modules>
 
