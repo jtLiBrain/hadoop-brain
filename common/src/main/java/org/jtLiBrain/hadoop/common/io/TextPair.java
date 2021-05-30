@@ -8,20 +8,20 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 public class TextPair implements WritableComparable<TextPair> {
+    private static final Text.Comparator TEXT_COMPARATOR = new Text.Comparator();
+
     private Text first;
     private Text second;
 
-    private TextPair() {}
+    public TextPair() {
+        this(new Text(), new Text());
+    }
 
     public TextPair(Text first, Text second) {
-        assert first != null;
-        assert second != null;
-
         this.first = first;
         this.second = second;
     }
 
-    // imposes the ordering
     @Override
     public int compareTo(TextPair o) {
         int cmp = this.first.compareTo(o.first);
@@ -65,23 +65,37 @@ public class TextPair implements WritableComparable<TextPair> {
 
     // getters and setters
     public Text getFirst() {
-        return this.first;
+        return first;
     }
+
+    public void setFirst(Text first) {
+        this.first = first;
+    }
+
     public Text getSecond() {
-        return this.second;
+        return second;
+    }
+
+    public void setSecond(Text second) {
+        this.second = second;
+    }
+
+    public void set(Text first, Text second) {
+        this.first = first;
+        this.second = second;
+    }
+
+    public void set(String first, String second) {
+        this.first = new Text(first);
+        this.second = new Text(second);
     }
 
     /**
-     *
+     * This comparator uses the natural ordering for the first key and then for the second key.
      */
-    public static class FullComparator extends WritableComparator {
-        private static final Text.Comparator TEXT_COMPARATOR = new Text.Comparator();
-
-        private boolean isAsc = true;
-
-        public FullComparator(boolean isAsc) {
+    public static class NaturalComparator extends WritableComparator {
+        public NaturalComparator() {
             super(TextPair.class);
-            this.isAsc = isAsc;
         }
 
         @Override
@@ -92,78 +106,27 @@ public class TextPair implements WritableComparable<TextPair> {
                 int firstL2 = WritableUtils.decodeVIntSize(b2[s2]) + readVInt(b2, s2);
                 int cmp = TEXT_COMPARATOR.compare(b1, s1, firstL1, b2, s2, firstL2);
                 if (cmp != 0) {
-                    if(isAsc)
-                        return cmp;
-                    else
-                        return cmp * -1;
+                    return cmp;
                 }
 
                 cmp = TEXT_COMPARATOR.compare(
                         b1, s1 + firstL1, l1 - firstL1,
                         b2, s2 + firstL2, l2 - firstL2);
 
-                if(isAsc)
-                    return cmp;
-                else
-                    return cmp * -1;
-            } catch (IOException e) {
-                throw new IllegalArgumentException(e);
-            }
-        }
-    }
-
-    /**
-     *
-     */
-    public static class FirstComparator extends WritableComparator {
-        private static final Text.Comparator TEXT_COMPARATOR = new Text.Comparator();
-
-        private boolean isAsc = true;
-
-        public FirstComparator(boolean isAsc) {
-            super(TextPair.class);
-            this.isAsc = isAsc;
-        }
-
-        @Override
-        public int compare(byte[] b1, int s1, int l1,
-                           byte[] b2, int s2, int l2) {
-            try {
-                int firstL1 = WritableUtils.decodeVIntSize(b1[s1]) + readVInt(b1, s1);
-                int firstL2 = WritableUtils.decodeVIntSize(b2[s2]) + readVInt(b2, s2);
-
-                if(isAsc)
-                    return TEXT_COMPARATOR.compare(b1, s1, firstL1, b2, s2, firstL2);
-                else
-                    return TEXT_COMPARATOR.compare(b1, s1, firstL1, b2, s2, firstL2) * -1;
-            } catch (IOException e) {
-                throw new IllegalArgumentException(e);
-            }
-        }
-
-        @Override
-        public int compare(WritableComparable a, WritableComparable b) {
-            int cmp;
-            if (a instanceof TextPair && b instanceof TextPair) {
-                cmp = ((TextPair) a).first.compareTo(((TextPair) b).first);
-            } else {
-                cmp = super.compare(a, b);
-            }
-
-            if(isAsc)
                 return cmp;
-            else
-                return cmp * -1;
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e);
+            }
         }
     }
-
 
     /**
      * Partition based on the first part of the pair.
      */
     public static class FirstPartitioner<V> extends Partitioner<TextPair, V> {
         @Override
-        public int getPartition(TextPair key, V value, int numPartitions) {
+        public int getPartition(TextPair key, V value,
+                                int numPartitions) {
             return Math.abs(key.getFirst().hashCode() % numPartitions);
         }
     }
@@ -172,25 +135,25 @@ public class TextPair implements WritableComparable<TextPair> {
      * Compare only the first part of the pair, so that reduce is called once
      * for each value of the first part.
      */
-    public static class FirstGroupingComparator extends WritableComparator {
-        private boolean isAsc = true;
+    public static class FirstGroupingComparator implements RawComparator<TextPair> {
+        @Override
+        public int compare(byte[] b1, int s1, int l1,
+                           byte[] b2, int s2, int l2) {
+            try {
+                int firstL1 = WritableUtils.decodeVIntSize(b1[s1]) + WritableComparator.readVInt(b1, s1);
+                int firstL2 = WritableUtils.decodeVIntSize(b2[s2]) + WritableComparator.readVInt(b2, s2);
 
-        public FirstGroupingComparator(boolean isAsc) {
-            super(TextPair.class, true);
-            this.isAsc = isAsc;
+                return TEXT_COMPARATOR.compare(
+                        b1, s1, firstL1,
+                        b2, s2, firstL2);
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e);
+            }
         }
 
         @Override
-        public int compare(WritableComparable wc1, WritableComparable wc2) {
-            TextPair ck1 = (TextPair) wc1;
-            TextPair ck2 = (TextPair) wc2;
-
-            int cmp = ck1.getFirst().compareTo(ck2.getFirst());
-
-            if(isAsc)
-                return cmp;
-            else
-                return cmp * -1;
+        public int compare(TextPair o1, TextPair o2) {
+            return o1.getFirst().compareTo(o2.getFirst());
         }
     }
 }
