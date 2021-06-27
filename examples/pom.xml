@@ -10,8 +10,8 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>hadoop-wordcount</artifactId>
-    <name>Hadoop WordCount</name>
+    <artifactId>hadoop-examples</artifactId>
+    <name>Hadoop Examples</name>
     <description></description>
     <packaging>jar</packaging>
 
@@ -19,5 +19,10 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.jtLiBrain.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 </project>

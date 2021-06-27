@@ -1,4 +1,4 @@
-package org.jtLiBrain.hadoop;
+package org.jtLiBrain.hadoop.examples;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;

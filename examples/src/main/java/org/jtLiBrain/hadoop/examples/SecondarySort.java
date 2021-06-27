@@ -1,3 +1,5 @@
+package org.jtLiBrain.hadoop.examples;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -13,7 +15,7 @@ import org.jtLiBrain.hadoop.common.io.TextPair;
 
 import java.io.IOException;
 
-public class SecondarySortWithTextPair {
+public class SecondarySort {
     public static class MapClass extends Mapper<LongWritable, Text, TextPair, Text> {
         private final TextPair key = new TextPair();
 
@@ -28,7 +30,7 @@ public class SecondarySortWithTextPair {
         }
     }
 
-    public static class Reduce extends Reducer<TextPair, Text, NullWritable, Text> {
+    public static class ReduceClass extends Reducer<TextPair, Text, NullWritable, Text> {
         @Override
         protected void reduce(TextPair key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             for(Text value: values) {
@@ -45,9 +47,9 @@ public class SecondarySortWithTextPair {
             System.exit(2);
         }
         Job job = Job.getInstance(conf, "secondary sort");
-        job.setJarByClass(SecondarySortWithTextPair.class);
+        job.setJarByClass(SecondarySort.class);
         job.setMapperClass(MapClass.class);
-        job.setReducerClass(Reduce.class);
+        job.setReducerClass(ReduceClass.class);
 
         // sort by the first and second in the pair
         job.setSortComparatorClass(TextPair.NaturalComparator.class);
